@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Letterlab luisteren</title>
+    <!--
+        Letterlab — luisteren
+        Auditieve oefeningen zonder afbeelding: de cursist moet echt naar
+        het woord luisteren.
+          zelfde   Hoor je hetzelfde of niet?
+          hoor     Hoor je de klank?
+          plaats   Waar hoor je de klank? (blanco structureerstrook)
+          welke    Welke klank hoor je? (bv. a of aa)
+          tel      Hoeveel klanken hoor je?
+        De volledige oefening staat in de link.
+        Stappenplan technisch lezen: stap 2, 5, 8 en 11 (A, C, F, G).
+    -->
+    <style>
+        @font-face {
+            font-family: Andika;
+            src: url("assets/fonts/andika-400.woff2") format("woff2");
+            font-weight: 400;
+            font-display: block;
+        }
+        @font-face {
+            font-family: Andika;
+            src: url("assets/fonts/andika-700.woff2") format("woff2");
+            font-weight: 700;
+            font-display: block;
+        }
+
+        :root {
+            --ink: #0b4a5e;
+            --muted: #4f6f78;
+            --teal: #087f8c;
+            --teal-dark: #08646d;
+            --teal-soft: #d9f2f4;
+            --tile: #eef8f9;
+            --pink: #e7427a;
+            --pink-soft: #fde4ee;
+            --paper: #f7fbfb;
+            --line: #c8dfe1;
+            --good: #16805d;
+            --good-soft: #dff3ea;
+            --bad: #c2334d;
+            --bad-soft: #fbe3e7;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: Andika, "Segoe UI", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body.embedded { background: transparent; }
+        body.intro-page { height: auto; }
+        button { font: inherit; color: inherit; cursor: pointer; }
+
+        .app {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Voortgang: bolletjes bovenaan */
+        .dots {
+            flex: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 10px 0;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--line);
+        }
+        .dot.now { background: var(--teal); transform: scale(1.25); }
+        .dot.good { background: var(--good); }
+        .dot.retry { background: #e3a43a; }
+
+        .stage {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            gap: 10px;
+            padding: 8px 12px;
+        }
+
+        /* De klank waar het over gaat */
+        .target {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .card {
+            min-width: 1.3em;
+            padding: 0.05em 0.25em 0.12em;
+            border-radius: 0.2em;
+            border: 2px solid var(--line);
+            background: #fff;
+            text-align: center;
+            line-height: 1.1;
+            font-size: clamp(44px, 12vmin, 120px);
+            box-shadow: 0 6px 18px rgba(20, 67, 79, 0.08);
+        }
+        .mini {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 1.5px solid var(--line);
+            background: #fff;
+            color: var(--teal-dark);
+            display: grid;
+            place-items: center;
+        }
+        .mini svg { width: 26px; height: 26px; }
+        .mini.playing { background: var(--pink); border-color: var(--pink); color: #fff; }
+
+        /* Grote afspeelknop */
+        .play-area { display: flex; align-items: center; gap: 18px; }
+        .play {
+            width: clamp(84px, 22vmin, 150px);
+            height: clamp(84px, 22vmin, 150px);
+            border-radius: 50%;
+            border: 0;
+            background: var(--teal);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 10px 26px rgba(8, 127, 140, 0.28);
+        }
+        .play svg { width: 46%; height: 46%; margin-left: 4%; }
+        .play.playing { background: var(--pink); box-shadow: 0 10px 26px rgba(231, 66, 122, 0.3); }
+        .play:active { transform: scale(0.96); }
+        /* Twee woorden (zelfde of niet): 1 en 2 lichten op */
+        .pair { display: flex; gap: 10px; }
+        .pair span {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid var(--line);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            color: var(--muted);
+            background: #fff;
+        }
+        .pair span.on { background: var(--pink); border-color: var(--pink); color: #fff; }
+
+        /* Antwoordknoppen */
+        .answers {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: clamp(10px, 3vmin, 26px);
+        }
+        .answer {
+            min-width: clamp(76px, 19vmin, 140px);
+            height: clamp(76px, 19vmin, 140px);
+            padding: 0 0.3em;
+            border-radius: 22px;
+            border: 3px solid var(--line);
+            background: #fff;
+            display: grid;
+            place-items: center;
+            font-size: clamp(36px, 10vmin, 84px);
+            line-height: 1;
+            color: var(--ink);
+            box-shadow: 0 6px 18px rgba(20, 67, 79, 0.08);
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .answer svg { width: 0.95em; height: 0.95em; }
+        .answer.yes { color: var(--good); }
+        .answer.no { color: var(--bad); }
+        .answer.right { background: var(--good-soft); border-color: var(--good); }
+        .answer.wrong { background: var(--bad-soft); border-color: var(--bad); animation: shake 0.4s; }
+        .answer:disabled { cursor: default; }
+        .answer .count-dots { display: flex; gap: 0.08em; flex-wrap: wrap; justify-content: center; max-width: 2.2em; }
+        .answer .count-dots i { width: 0.22em; height: 0.22em; border-radius: 50%; background: currentColor; display: block; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        /* Blanco strook om de plaats aan te tikken */
+        .strip {
+            display: flex;
+            background: #fff;
+            border: 3px solid var(--teal);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 10px 28px rgba(8, 127, 140, 0.14);
+        }
+        .slot {
+            width: clamp(70px, 17vmin, 130px);
+            height: clamp(80px, 19vmin, 140px);
+            border: 0;
+            border-right: 3px solid var(--line);
+            background: var(--tile);
+            display: grid;
+            place-items: center;
+            font-size: clamp(38px, 10vmin, 84px);
+            line-height: 1;
+            color: var(--ink);
+        }
+        .slot:last-child { border-right: 0; }
+        .slot.right { background: var(--good-soft); color: var(--good); }
+        .slot.wrong { background: var(--bad-soft); animation: shake 0.4s; }
+        .slot.hit { color: var(--pink); }
+
+        /* Het woord na het antwoord */
+        .reveal {
+            min-height: clamp(54px, 13vmin, 110px);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .word {
+            display: flex;
+            font-size: clamp(40px, 11vmin, 96px);
+            line-height: 1.1;
+        }
+        .word .g { padding: 0 0.02em; }
+        .word .g.hit { color: var(--pink); }
+        .word.split .g { padding: 0 0.12em; border-right: 2px solid var(--line); }
+        .word.split .g:last-child { border-right: 0; }
+        .feedback {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            flex: none;
+        }
+        .feedback svg { width: 62%; height: 62%; }
+        .feedback.good { background: var(--good); }
+        .next {
+            height: 54px;
+            padding: 0 22px;
+            border-radius: 999px;
+            border: 0;
+            background: var(--teal);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .next svg { width: 26px; height: 26px; }
+
+        .big-button {
+            border: 0;
+            border-radius: 999px;
+            background: var(--teal);
+            color: #fff;
+            font-size: clamp(22px, 5vmin, 40px);
+            font-weight: 700;
+            padding: 0.55em 1.4em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4em;
+            box-shadow: 0 8px 22px rgba(8, 127, 140, 0.25);
+        }
+        .big-button svg { width: 1.1em; height: 1.1em; }
+        .done-mark {
+            width: clamp(70px, 18vmin, 150px);
+            height: clamp(70px, 18vmin, 150px);
+            border-radius: 50%;
+            background: var(--good);
+            color: #fff;
+            display: grid;
+            place-items: center;
+        }
+        .done-mark svg { width: 60%; height: 60%; }
+        .score { font-size: clamp(22px, 5vmin, 36px); color: var(--muted); }
+
+        .hidden { visibility: hidden; }
+
+        @media (max-height: 380px) {
+            .stage { gap: 4px; padding: 4px 8px; }
+            .dots { padding-top: 4px; }
+            .card { font-size: 40px; }
+            .play { width: 70px; height: 70px; }
+            .answer { min-width: 64px; height: 64px; font-size: 34px; border-radius: 16px; }
+            .slot { width: 60px; height: 64px; font-size: 34px; }
+            .reveal { min-height: 46px; }
+            .word { font-size: 38px; }
+            .feedback { width: 40px; height: 40px; }
+            .next { height: 42px; font-size: 15px; padding: 0 14px; }
+            .mini { width: 38px; height: 38px; }
+        }
+
+        /* Uitlegpagina */
+        .intro {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+            line-height: 1.5;
+            font-size: 18px;
+            user-select: text;
+        }
+        .intro h1 { color: var(--teal-dark); margin-bottom: 4px; }
+        .intro h2 { color: var(--teal-dark); font-size: 21px; margin-top: 30px; }
+        .intro code { background: var(--teal-soft); padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+        .intro a { color: var(--teal-dark); }
+        .intro table { border-collapse: collapse; width: 100%; font-size: 16px; }
+        .intro td, .intro th { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+        .maker {
+            background: #fff;
+            border: 1.5px solid var(--line);
+            border-radius: 16px;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+        .maker label { font-weight: 700; display: grid; gap: 4px; }
+        .maker label small { font-weight: 400; color: var(--muted); }
+        .maker input[type=text], .maker select {
+            font: inherit;
+            padding: 8px 10px;
+            border: 1.5px solid var(--line);
+            border-radius: 10px;
+            color: var(--ink);
+            background: #fff;
+        }
+        .maker .check { font-weight: 400; display: flex; gap: 8px; align-items: center; }
+        .maker output { display: block; background: var(--teal-soft); border-radius: 10px; padding: 8px 10px; font-size: 15px; word-break: break-all; }
+        .maker .warn { color: var(--bad); font-size: 15px; }
+        .maker .row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .maker .row button, .maker .row a {
+            border: 0;
+            border-radius: 999px;
+            background: var(--teal);
+            color: #fff;
+            padding: 8px 16px;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .maker [hidden] { display: none; }
+    </style>
+</head>
+<body>
+    <div class="app" id="app"></div>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></symbol>
+        <symbol id="i-restart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+        <symbol id="i-cross" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+        <symbol id="i-speaker" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/></symbol>
+        <symbol id="i-ear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-5.5 1.6M10 9.5a2 2 0 0 1 4 0c0 1.2-1.2 1.6-1.2 2.8"/></symbol>
+        <symbol id="i-equal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M5 9h14M5 15h14"/></symbol>
+        <symbol id="i-notequal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M5 9h14M5 15h14M16 4.5L8 19.5"/></symbol>
+    </svg>
+
+    <script>
+    (() => {
+        "use strict";
+
+        // ============================================================
+        // 1. INSTELLINGEN UIT DE LINK
+        // ============================================================
+        //   soort=zelfde   woorden=raam/raam,raam/ram,deur/deuk
+        //   soort=hoor     klank=r   woorden=jas,klas,raam,deur
+        //   soort=plaats   klank=r   woorden=raam,deur,arm
+        //   soort=welke    keuzes=a,aa   woorden=dak,zak,zaak,jas,kaas
+        //   soort=tel      woorden=vaas,lees,map
+        //   mix=ja         elke keer een andere volgorde
+        //   toon=nee       het woord na het antwoord niet tonen
+        //   klank=nee kan niet: zonder klank geen oefening.
+
+        const params = new URLSearchParams(location.search);
+        const param = (name) => (params.get(name) || "").trim();
+        const isYes = (value) => ["ja", "j", "yes", "1", "true", "waar"].includes(value.toLowerCase());
+        const isNo = (value) => ["nee", "n", "no", "0", "false", "onwaar"].includes(value.toLowerCase());
+
+        const KINDS = ["zelfde", "hoor", "plaats", "welke", "tel"];
+        const kind = KINDS.includes(param("soort").toLowerCase()) ? param("soort").toLowerCase() : "";
+        const target = param("klank").toLowerCase();
+        const choices = param("keuzes").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
+        const shuffle = isYes(param("mix"));
+        const reveal = !isNo(param("toon"));
+
+        // Pauze tussen de twee woorden bij 'zelfde' (milliseconden).
+        const PAIR_GAP_MS = 700;
+
+        const embedded = window.self !== window.top;
+        if (embedded) document.body.classList.add("embedded");
+
+        const SOUND_FOLDERS = ["../assets/audio/klanken/", "../klikklak/assets/audio/klanken/"];
+        const WORD_FOLDERS = ["../assets/audio/woorden/", "../klikklak/assets/audio/woorden/"];
+        const RESERVED_NAMES = ["con", "prn", "aux", "nul"];
+
+        const COMPOUNDS = ["sch", "oe", "aa", "ee", "oo", "uu", "ie", "ei", "ij",
+            "ui", "eu", "ou", "au", "ng", "ch"].sort((a, b) => b.length - a.length);
+
+        function tokenize(word) {
+            const clean = word.toLowerCase().trim();
+            if (/[-·.]/.test(clean)) {
+                return clean.split(/[-·.]/).map((part) => part.trim()).filter(Boolean);
+            }
+            const letters = clean.replace(/[^a-zà-ÿ0-9]/g, "");
+            const out = [];
+            let i = 0;
+            while (i < letters.length) {
+                const found = COMPOUNDS.find((compound) => letters.startsWith(compound, i));
+                out.push(found || letters[i]);
+                i += (found || letters[i]).length;
+            }
+            return out;
+        }
+
+        const app = document.getElementById("app");
+        const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+        function escapeHtml(value) {
+            return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // ============================================================
+        // 2. DE VRAGEN OPBOUWEN
+        // ============================================================
+        // Elke vraag weet zelf wat het juiste antwoord is. Een woord dat
+        // niet past (bv. bij 'welke' geen of twee keuzes), valt weg.
+
+        const rawWords = param("woorden").split(/[,|]/).map((x) => x.trim()).filter(Boolean);
+        const problems = [];
+
+        function buildQuestions() {
+            const list = [];
+            rawWords.forEach((raw) => {
+                if (kind === "zelfde") {
+                    const [a, b] = raw.split("/").map((x) => x.trim().toLowerCase());
+                    if (!a || !b) {
+                        problems.push(`'${raw}': schrijf twee woorden met een / ertussen.`);
+                        return;
+                    }
+                    list.push({ words: [a, b], answer: a === b ? "zelfde" : "anders", show: [a, b] });
+                    return;
+                }
+                const parts = tokenize(raw);
+                const word = parts.join("");
+                if (!parts.length) return;
+                if (kind === "hoor") {
+                    list.push({ words: [word], parts, answer: parts.includes(target) ? "ja" : "nee" });
+                } else if (kind === "plaats") {
+                    const places = parts.map((part, i) => (part === target ? i : -1)).filter((i) => i >= 0);
+                    if (!places.length) {
+                        problems.push(`'${word}': de klank ${target} zit niet in dit woord.`);
+                        return;
+                    }
+                    list.push({ words: [word], parts, answer: places });
+                } else if (kind === "welke") {
+                    const found = choices.filter((choice) => parts.includes(choice));
+                    if (found.length !== 1) {
+                        problems.push(`'${word}': ${found.length ? "meer dan één keuze" : "geen enkele keuze"} zit in dit woord.`);
+                        return;
+                    }
+                    list.push({ words: [word], parts, answer: found[0] });
+                } else if (kind === "tel") {
+                    list.push({ words: [word], parts, answer: parts.length });
+                }
+            });
+            return list;
+        }
+
+        const questions = kind ? buildQuestions() : [];
+        const needsTarget = kind === "hoor" || kind === "plaats";
+        const ready = questions.length && (!needsTarget || target) && (kind !== "welke" || choices.length >= 2);
+
+        if (!ready) {
+            showIntro();
+            return;
+        }
+        if (problems.length) console.warn("Letterlab luisteren:", problems.join(" "));
+
+        // ============================================================
+        // 3. AUDIO
+        // ============================================================
+
+        const KNOWN_SOUNDS = new Set(["a", "aa", "b", "d", "e", "ee", "eu", "f",
+            "g", "h", "i", "ie", "ij", "ei", "j", "k", "l", "m", "n", "ng", "nk",
+            "o", "oe", "oo", "ou", "p", "r", "s", "sch", "sl", "sp", "st", "t",
+            "u", "ui", "uu", "v", "w", "z"]);
+
+        function soundUrls(part) {
+            if (!KNOWN_SOUNDS.has(part)) return [];
+            const file = part === "ij" || part === "ei" ? "ij-ei" : part;
+            return SOUND_FOLDERS.map((folder) => `${folder}${encodeURIComponent(file)}.mp3`);
+        }
+        function wordUrls(word) {
+            const name = RESERVED_NAMES.includes(word) ? `${word}_` : word;
+            const file = `${encodeURIComponent(name)}.mp3`;
+            return WORD_FOLDERS.flatMap((folder) => [
+                `${folder}${encodeURIComponent(word.charAt(0))}/${file}`,
+                `${folder}nonsens/${file}`,
+            ]);
+        }
+
+        let audioContext = null;
+        const bufferCache = new Map();
+        const sources = new Set();
+        function context() {
+            if (!audioContext) {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (Ctx) audioContext = new Ctx();
+            }
+            if (audioContext && audioContext.state === "suspended") audioContext.resume();
+            return audioContext;
+        }
+        async function loadBuffer(url) {
+            if (bufferCache.has(url)) return bufferCache.get(url);
+            const promise = (async () => {
+                const ctx = context();
+                if (!ctx) return null;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) return null;
+                    const data = await response.arrayBuffer();
+                    return await new Promise((resolve, reject) => ctx.decodeAudioData(data, resolve, reject));
+                } catch (error) {
+                    return null;
+                }
+            })();
+            bufferCache.set(url, promise);
+            return promise;
+        }
+        function trimRange(buffer) {
+            const data = buffer.getChannelData(0);
+            let start = 0;
+            let end = data.length - 1;
+            while (start < end && Math.abs(data[start]) < 0.02) start += 1;
+            while (end > start && Math.abs(data[end]) < 0.02) end -= 1;
+            const pad = Math.floor(buffer.sampleRate * 0.03);
+            start = Math.max(0, start - pad);
+            end = Math.min(data.length - 1, end + pad);
+            return { offset: start / buffer.sampleRate, duration: (end - start) / buffer.sampleRate };
+        }
+        function playBuffer(buffer) {
+            return new Promise((resolve) => {
+                const ctx = context();
+                const source = ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(ctx.destination);
+                source.onended = () => {
+                    sources.delete(source);
+                    resolve();
+                };
+                const range = trimRange(buffer);
+                source.start(0, range.offset, range.duration);
+                sources.add(source);
+            });
+        }
+        function speak(text) {
+            return new Promise((resolve) => {
+                if (!("speechSynthesis" in window) || !text) {
+                    resolve();
+                    return;
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = speechSynthesis.getVoices();
+                utterance.voice = voices.find((v) => v.lang === "nl-BE")
+                    || voices.find((v) => v.lang.startsWith("nl")) || null;
+                utterance.lang = utterance.voice ? utterance.voice.lang : "nl-BE";
+                utterance.rate = 0.8;
+                utterance.onend = resolve;
+                utterance.onerror = resolve;
+                setTimeout(resolve, 3500);
+                speechSynthesis.speak(utterance);
+            });
+        }
+        async function playFirst(urls, text) {
+            for (const url of urls) {
+                // eslint-disable-next-line no-await-in-loop
+                const buffer = await loadBuffer(url);
+                if (buffer) return playBuffer(buffer);
+            }
+            return speak(text);
+        }
+        function stopAudio() {
+            sources.forEach((source) => {
+                try { source.stop(); } catch (error) { /* al gestopt */ }
+            });
+            sources.clear();
+            if ("speechSynthesis" in window) speechSynthesis.cancel();
+        }
+        const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+        function preload(question) {
+            if (!question) return;
+            question.words.forEach((word) => wordUrls(word).slice(0, 2).forEach(loadBuffer));
+        }
+
+        // ============================================================
+        // 4. TOESTAND
+        // ============================================================
+
+        function shuffled(list) {
+            const copy = list.slice();
+            for (let i = copy.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        const state = {
+            order: [],
+            index: -1,          // -1 = startscherm
+            results: [],        // "good" (meteen juist) of "retry"
+            tries: 0,
+            solved: false,
+            picked: [],         // gekozen antwoorden (fout) van deze vraag
+            playing: false,
+            run: 0,
+            finished: false,
+        };
+
+        function question() {
+            return state.order[state.index];
+        }
+
+        // ============================================================
+        // 5. AFSPELEN
+        // ============================================================
+
+        async function playQuestion() {
+            const q = question();
+            if (!q) return;
+            stopAudio();
+            state.run += 1;
+            const run = state.run;
+            setPlaying(true, -1);
+            for (let i = 0; i < q.words.length; i += 1) {
+                if (run !== state.run) return;
+                setPlaying(true, i);
+                // eslint-disable-next-line no-await-in-loop
+                await playFirst(wordUrls(q.words[i]), q.words[i]);
+                if (i < q.words.length - 1) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await wait(PAIR_GAP_MS);
+                }
+            }
+            if (run !== state.run) return;
+            setPlaying(false, -1);
+        }
+
+        async function playTarget(button) {
+            const text = target || "";
+            button.classList.add("playing");
+            await playFirst(soundUrls(text), text);
+            button.classList.remove("playing");
+        }
+
+        function setPlaying(on, wordIndex) {
+            state.playing = on;
+            const play = document.querySelector(".play");
+            if (play) play.classList.toggle("playing", on);
+            document.querySelectorAll(".pair span").forEach((node, i) => {
+                node.classList.toggle("on", on && i === wordIndex);
+            });
+        }
+
+        // ============================================================
+        // 6. TEKENEN
+        // ============================================================
+
+        function dotsHtml() {
+            return `<div class="dots" aria-hidden="true">${state.order.map((q, i) => {
+                const result = state.results[i];
+                const cls = result ? result : i === state.index ? "now" : "";
+                return `<span class="dot ${cls}"></span>`;
+            }).join("")}</div>`;
+        }
+
+        function targetHtml() {
+            if (needsTarget) {
+                return `<div class="target">
+                    <div class="card">${escapeHtml(target)}</div>
+                    <button class="mini" data-action="target" aria-label="Luister naar de klank">${icon("speaker")}</button>
+                </div>`;
+            }
+            return "";
+        }
+
+        function answersHtml(q) {
+            const solved = state.solved;
+            const mark = (value) => {
+                if (solved && sameAnswer(value, q.answer)) return "right";
+                if (state.picked.some((p) => sameAnswer(p, value))) return "wrong";
+                return "";
+            };
+            if (kind === "zelfde") {
+                return `<div class="answers">
+                    <button class="answer yes ${mark("zelfde")}" data-answer="zelfde" aria-label="Hetzelfde" ${solved ? "disabled" : ""}>${icon("equal")}</button>
+                    <button class="answer no ${mark("anders")}" data-answer="anders" aria-label="Niet hetzelfde" ${solved ? "disabled" : ""}>${icon("notequal")}</button>
+                </div>`;
+            }
+            if (kind === "hoor") {
+                return `<div class="answers">
+                    <button class="answer yes ${mark("ja")}" data-answer="ja" aria-label="Ja, ik hoor de klank" ${solved ? "disabled" : ""}>${icon("check")}</button>
+                    <button class="answer no ${mark("nee")}" data-answer="nee" aria-label="Nee, ik hoor de klank niet" ${solved ? "disabled" : ""}>${icon("cross")}</button>
+                </div>`;
+            }
+            if (kind === "welke") {
+                return `<div class="answers">${choices.map((choice) => `
+                    <button class="answer ${mark(choice)}" data-answer="${escapeHtml(choice)}" ${solved ? "disabled" : ""}>${escapeHtml(choice)}</button>`).join("")}
+                </div>`;
+            }
+            if (kind === "tel") {
+                const most = Math.max(4, ...state.order.map((x) => x.answer));
+                const options = [];
+                for (let n = 1; n <= Math.min(most, 6); n += 1) options.push(n);
+                return `<div class="answers">${options.map((n) => `
+                    <button class="answer ${mark(n)}" data-answer="${n}" aria-label="${n} klanken" ${solved ? "disabled" : ""}>
+                        <span class="count-dots">${"<i></i>".repeat(n)}</span>
+                    </button>`).join("")}
+                </div>`;
+            }
+            // plaats: blanco strook
+            return `<div class="strip">${q.parts.map((part, i) => {
+                let cls = "";
+                let content = "";
+                if (solved && q.answer.includes(i)) {
+                    cls = "right";
+                    content = "×";
+                } else if (state.picked.includes(i)) {
+                    cls = "wrong";
+                }
+                return `<button class="slot ${cls}" data-answer="${i}" aria-label="Vakje ${i + 1}" ${solved ? "disabled" : ""}>${content}</button>`;
+            }).join("")}</div>`;
+        }
+
+        function sameAnswer(a, b) {
+            if (Array.isArray(b)) return b.includes(Number(a));
+            return String(a) === String(b);
+        }
+
+        function revealHtml(q) {
+            if (!state.solved) return `<div class="reveal"></div>`;
+            let word = "";
+            if (reveal) {
+                if (kind === "zelfde") {
+                    word = `<div class="word">${q.show.map((w) => escapeHtml(w)).join(`<span style="color:var(--line);padding:0 .25em">${q.answer === "zelfde" ? "=" : "≠"}</span>`)}</div>`;
+                } else {
+                    const hit = (part, i) => (kind === "hoor" && part === target)
+                        || (kind === "plaats" && q.answer.includes(i))
+                        || (kind === "welke" && part === q.answer);
+                    word = `<div class="word ${kind === "tel" ? "split" : ""}">${q.parts.map((part, i) => `<span class="g ${hit(part, i) ? "hit" : ""}">${escapeHtml(part)}</span>`).join("")}</div>`;
+                }
+            }
+            const last = state.index === state.order.length - 1;
+            return `<div class="reveal">
+                <span class="feedback good">${icon("check")}</span>
+                ${word}
+                <button class="next" data-action="next" aria-label="${last ? "Klaar" : "Volgende"}">${icon(last ? "check" : "next")}</button>
+            </div>`;
+        }
+
+        function render() {
+            if (state.finished) {
+                const good = state.results.filter((r) => r === "good").length;
+                app.innerHTML = `${dotsHtml()}<div class="stage">
+                    <div class="done-mark">${icon("check")}</div>
+                    <div class="score">${good} / ${state.order.length}</div>
+                    <button class="big-button" data-action="restart">${icon("restart")} Opnieuw</button>
+                </div>`;
+                return;
+            }
+            if (state.index < 0) {
+                app.innerHTML = `<div class="stage">
+                    ${targetHtml()}
+                    <button class="big-button" data-action="start">${icon("play")} Start</button>
+                </div>`;
+                return;
+            }
+            const q = question();
+            app.innerHTML = `${dotsHtml()}
+                <div class="stage">
+                    ${targetHtml()}
+                    <div class="play-area">
+                        <button class="play ${state.playing ? "playing" : ""}" data-action="play" aria-label="Luister">${icon("speaker")}</button>
+                        ${kind === "zelfde" ? `<div class="pair" aria-hidden="true"><span>1</span><span>2</span></div>` : ""}
+                    </div>
+                    ${answersHtml(q)}
+                    ${revealHtml(q)}
+                </div>`;
+        }
+
+        // ============================================================
+        // 7. ANTWOORDEN EN BEDIENING
+        // ============================================================
+
+        function choose(value) {
+            const q = question();
+            if (!q || state.solved) return;
+            state.tries += 1;
+            const answerValue = kind === "tel" || kind === "plaats" ? Number(value) : value;
+            if (sameAnswer(answerValue, q.answer)) {
+                state.solved = true;
+                state.results[state.index] = state.tries === 1 ? "good" : "retry";
+                render();
+                // Na het juiste antwoord nog eens luisteren, met het woord erbij.
+                if (reveal) setTimeout(() => playQuestion(), 350);
+            } else {
+                if (!state.picked.includes(answerValue)) state.picked.push(answerValue);
+                render();
+            }
+        }
+
+        function show(index) {
+            stopAudio();
+            state.run += 1;
+            state.index = index;
+            state.tries = 0;
+            state.solved = false;
+            state.picked = [];
+            state.playing = false;
+            render();
+            preload(state.order[index + 1]);
+            setTimeout(() => playQuestion(), 300);
+        }
+
+        function start() {
+            context();   // geluid vrijgeven na een tik (iPhone)
+            state.order = shuffle ? shuffled(questions) : questions.slice();
+            state.results = [];
+            state.finished = false;
+            show(0);
+        }
+
+        function next() {
+            if (state.index < state.order.length - 1) show(state.index + 1);
+            else {
+                stopAudio();
+                state.finished = true;
+                render();
+            }
+        }
+
+        app.addEventListener("click", (event) => {
+            const answer = event.target.closest("[data-answer]");
+            if (answer && !answer.disabled) {
+                choose(answer.dataset.answer);
+                return;
+            }
+            const target = event.target.closest("[data-action]");
+            if (!target) return;
+            const action = target.dataset.action;
+            if (action === "start" || action === "restart") start();
+            else if (action === "play") playQuestion();
+            else if (action === "target") playTarget(target);
+            else if (action === "next") next();
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.altKey || event.ctrlKey || event.metaKey) return;
+            const key = event.key.toLowerCase();
+            if (state.index < 0 || state.finished) {
+                if (key === " " || key === "enter") {
+                    event.preventDefault();
+                    start();
+                }
+                return;
+            }
+            if (key === " " || key === "l") {
+                event.preventDefault();
+                playQuestion();
+            } else if ((key === "arrowright" || key === "enter") && state.solved) {
+                event.preventDefault();
+                next();
+            }
+        });
+
+        Promise.all([document.fonts.load("400 100px Andika").catch(() => {}), document.fonts.ready]).then(() => {
+            preload(questions[0]);
+            render();
+        });
+
+        // ============================================================
+        // 8. UITLEG EN LINK MAKEN (zonder oefening in de link)
+        // ============================================================
+
+        function showIntro() {
+            document.title = "Letterlab luisteren";
+            document.body.classList.add("intro-page");
+            const notes = problems.length ? `<p class="warn">${problems.map(escapeHtml).join("<br>")}</p>` : "";
+            app.innerHTML = `<div class="intro">
+                <h1>Letterlab luisteren</h1>
+                <p>Auditieve oefeningen zonder afbeelding, zodat de cursist echt naar het woord luistert.
+                Na een juist antwoord verschijnt het woord, met de klank in het roze: zo leg je de link tussen klank en teken.</p>
+                ${notes}
+                <h2>Link maken</h2>
+                <div class="maker">
+                    <label>Soort oefening
+                        <select id="m-soort">
+                            <option value="zelfde">Hoor je hetzelfde of niet?</option>
+                            <option value="hoor">Hoor je de klank?</option>
+                            <option value="plaats">Waar hoor je de klank? (blanco strook)</option>
+                            <option value="welke">Welke klank hoor je? (bv. a of aa)</option>
+                            <option value="tel">Hoeveel klanken hoor je?</option>
+                        </select>
+                    </label>
+                    <label id="l-klank">Klank
+                        <small>Bv. r, aa, sch</small>
+                        <input type="text" id="m-klank" value="r" autocomplete="off">
+                    </label>
+                    <label id="l-keuzes">Keuzes
+                        <small>Twee of meer klanken met een komma: a,aa</small>
+                        <input type="text" id="m-keuzes" value="a,aa" autocomplete="off">
+                    </label>
+                    <label>Woorden
+                        <small id="m-hint">Met een komma ertussen.</small>
+                        <input type="text" id="m-woorden" value="" autocomplete="off">
+                    </label>
+                    <label class="check"><input type="checkbox" id="m-mix"> Elke keer een andere volgorde</label>
+                    <label class="check"><input type="checkbox" id="m-toon" checked> Woord tonen na een juist antwoord</label>
+                    <output id="m-out"></output>
+                    <div class="row">
+                        <a id="m-open" href="#" target="_blank" rel="noopener">Openen</a>
+                        <button type="button" id="m-copy">Link kopiëren</button>
+                        <button type="button" id="m-embed">Genially-code kopiëren</button>
+                    </div>
+                </div>
+
+                <h2>Soorten</h2>
+                <table>
+                    <tr><th>Soort</th><th>Voorbeeld</th><th>Stap</th></tr>
+                    <tr><td>Hoor je hetzelfde?</td><td><a href="?soort=zelfde&woorden=raam/raam,raam/ram,riem/raam,maar/raam,raam/raam">raam/ram, riem/raam</a></td><td>2B, 5B, 11F</td></tr>
+                    <tr><td>Hoor je de klank?</td><td><a href="?soort=hoor&klank=r&woorden=jas,klas,raam,deur,man,vrouw">r: jas, raam, deur</a></td><td>5A</td></tr>
+                    <tr><td>Waar hoor je de klank?</td><td><a href="?soort=plaats&klank=r&woorden=raam,deur,arm,rat,bier">r: raam, deur, arm</a></td><td>5A, 11G</td></tr>
+                    <tr><td>Welke klank hoor je?</td><td><a href="?soort=welke&keuzes=a,aa&woorden=dak,zak,zaak,jas,kaas,man,maan">a of aa</a></td><td>11F, 11G</td></tr>
+                    <tr><td>Hoeveel klanken?</td><td><a href="?soort=tel&woorden=vaas,lees,map,kip,raam,boek">vaas, lees, map</a></td><td>2, 11C</td></tr>
+                </table>
+                <p>De tool rekent zelf uit wat juist is. Een woord met streepjes (<code>b-a-nk</code>) bepaalt zelf de klanken.
+                Toetsen voor de lesgever: spatie of L = opnieuw luisteren, Enter = volgende.</p>
+                <p>Geluid: eerst de opnames in <code>assets/audio/woorden/</code>, dan die van het klik-klakboekje, anders de browserstem.
+                Ontbreekt een opname, voeg ze toe via de createpagina.</p>
+            </div>`;
+
+            const $ = (id) => document.getElementById(id);
+            const base = location.href.split("?")[0].split("#")[0];
+            const examples = {
+                zelfde: "raam/raam, raam/ram, riem/raam, maar/raam",
+                hoor: "jas, klas, raam, deur, man, vrouw",
+                plaats: "raam, deur, arm, rat, bier",
+                welke: "dak, zak, zaak, jas, kaas",
+                tel: "vaas, lees, map, kip",
+            };
+            if (kind) $("m-soort").value = kind;
+            function build() {
+                const soort = $("m-soort").value;
+                $("l-klank").hidden = !(soort === "hoor" || soort === "plaats");
+                $("l-keuzes").hidden = soort !== "welke";
+                $("m-hint").textContent = soort === "zelfde"
+                    ? "Telkens twee woorden met een / ertussen, gescheiden door komma's."
+                    : "Met een komma ertussen.";
+                $("m-woorden").placeholder = examples[soort];
+                const query = new URLSearchParams();
+                query.set("soort", soort);
+                if (!$("l-klank").hidden) query.set("klank", $("m-klank").value.trim());
+                if (!$("l-keuzes").hidden) query.set("keuzes", $("m-keuzes").value.replace(/\s/g, ""));
+                query.set("woorden", ($("m-woorden").value.trim() || examples[soort]).replace(/\s*,\s*/g, ",").replace(/\s*\/\s*/g, "/"));
+                if ($("m-mix").checked) query.set("mix", "ja");
+                if (!$("m-toon").checked) query.set("toon", "nee");
+                const url = `${base}?${query.toString().replace(/%2C/gi, ",").replace(/%2F/gi, "/")}`;
+                $("m-out").textContent = url;
+                $("m-open").href = url;
+                return url;
+            }
+            function copy(text, button) {
+                const done = () => {
+                    const old = button.textContent;
+                    button.textContent = "Gekopieerd";
+                    setTimeout(() => { button.textContent = old; }, 1400);
+                };
+                if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done);
+            }
+            app.addEventListener("input", build);
+            app.addEventListener("change", build);
+            $("m-copy").addEventListener("click", (event) => copy(build(), event.target));
+            $("m-embed").addEventListener("click", (event) => copy(
+                `<iframe src="${build()}" width="100%" height="560" style="border:0;background:transparent" allowtransparency="true" title="Letterlab luisteren"></iframe>`,
+                event.target));
+            build();
+        }
+    })();
+    </script>
+</body>
+</html>
